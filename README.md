@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WordSwipe
 
-## Getting Started
+Gamified SSC CGL English vocabulary trainer — scratch-to-reveal cards, Tinder-style ratings, and spaced repetition.
 
-First, run the development server:
+## Stack
+
+- **Next.js** (App Router) + **TypeScript**
+- **Tailwind CSS** (mobile-first UI)
+- **PostgreSQL** via **Prisma** (cloud sync)
+- **localStorage** (Zustand persist) for day-to-day progress
+
+## Quick start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The game works fully offline with the built-in word bank.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Optional: PostgreSQL sync
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Create a database and set `DATABASE_URL` in `.env`
+2. Run:
 
-## Learn More
+```bash
+npm run db:setup
+```
 
-To learn more about Next.js, take a look at the following resources:
+3. In the app: **Profile menu → Save progress** (or **Save & logout**) to push localStorage → Postgres.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How progress works
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Every swipe/rating updates **localStorage** immediately
+2. Memory strength, streaks, and unlocks stay on-device
+3. Clicking **Save** in the navbar profile dropdown syncs to Postgres
+4. **Save & logout** syncs then clears the local guest profile
 
-## Deploy on Vercel
+## Game loop
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Scratch the foil to reveal meaning / synonyms / antonyms / blanks
+- Rate with **Easy · Somewhat · Hard · New** (or swipe Easy/Hard)
+- Hard & New words reappear after a few cards (spaced repetition)
+- After 10 cards → session report (accuracy, streak, daily counts)
+- Levels unlock as your “known” word count grows
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Local dev server |
+| `npm run build` | Production build |
+| `npm run db:setup` | Push schema + seed words |
+| `npm run db:seed` | Re-seed vocabulary |
