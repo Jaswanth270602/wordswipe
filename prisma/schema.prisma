@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String         @id @default(cuid())
+  name         String         @default("Learner")
+  email        String?        @unique
+  avatarColor  String         @default("#0F766E")
+  streak       Int            @default(0)
+  lastPlayedAt DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  progress     WordProgress[]
+  sessions     StudySession[]
+  dailyStats   DailyStat[]
+}
+
+model Word {
+  id           String         @id @default(cuid())
+  word         String
+  meaning      String
+  example      String
+  synonyms     String[]
+  antonyms     String[]
+  blankSentence String?
+  blankAnswer  String?
+  category     Category
+  level        Int
+  difficulty   Difficulty     @default(EASY)
+  cardTypes    CardType[]
+  createdAt    DateTime       @default(now())
+  progress     WordProgress[]
+
+  @@unique([word, category])
+  @@index([level, category])
+}
+
+model WordProgress {
+  id            String   @id @default(cuid())
+  userId        String
+  wordId        String
+  rating        Rating   @default(NEW)
+  strength      Int      @default(0)
+  interval      Int      @default(0)
+  repetitions   Int      @default(0)
+  easeFactor    Float    @default(2.5)
+  nextReviewAt  DateTime @default(now())
+  knownCount    Int      @default(0)
+  unknownCount  Int      @default(0)
+  lastRating    Rating?
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word          Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId])
+  @@index([userId, nextReviewAt])
+}
+
+model StudySession {
+  id          String   @id @default(cuid())
+  userId      String
+  level       Int?
+  category    Category?
+  known       Int      @default(0)
+  unknown     Int      @default(0)
+  accuracy    Float    @default(0)
+  cardsPlayed Int      @default(0)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DailyStat {
+  id           String   @id @default(cuid())
+  userId       String
+  date         DateTime @db.Date
+  wordsLearned Int      @default(0)
+  accuracy     Float    @default(0)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+enum Category {
+  ONE_WORD_SUBSTITUTION
+  IDIOMS
+  PHRASAL_VERBS
+  SYNONYMS
+  ANTONYMS
+  CLOZE_TEST
+  ERROR_SPOTTING
+  EDITORIAL
+  PREVIOUS_YEAR
+  HIGH_FREQUENCY
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum CardType {
+  MEANING
+  EXAMPLE
+  SYNONYM
+  ANTONYM
+  FILL_BLANK
+}
+
+enum Rating {
+  EASY
+  SOMEWHAT
+  HARD
+  NEW
+}
