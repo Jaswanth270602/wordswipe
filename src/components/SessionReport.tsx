@@ -115,13 +115,13 @@ export function SessionReportView({
         <button
           type="button"
           onClick={onContinue}
-          className="h-12 rounded-2xl bg-[var(--teal)] font-semibold text-white transition active:scale-[0.98]"
+          className="h-12 rounded-2xl bg-teal-400 font-semibold text-[#070b14] transition active:scale-[0.98]"
         >
           Play another round
         </button>
         <Link
-          href="/"
-          className="flex h-12 items-center justify-center rounded-2xl border border-[var(--stroke)] font-semibold text-[var(--ink)]"
+          href="/home"
+          className="flex h-12 items-center justify-center rounded-2xl border border-white/15 font-semibold text-white"
         >
           Back home
         </Link>

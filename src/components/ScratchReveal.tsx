@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { sounds } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 
 interface ScratchRevealProps {
@@ -11,6 +10,10 @@ interface ScratchRevealProps {
   onReveal?: () => void;
 }
 
+/**
+ * Smooth mobile scratch — draws continuous strokes in canvas pixel space.
+ * No sound. Full-bleed foil with ResizeObserver.
+ */
 export function ScratchReveal({
   children,
   label = "Scratch to reveal",
@@ -22,6 +25,7 @@ export function ScratchReveal({
   const [revealed, setRevealed] = useState(false);
   const [foilReady, setFoilReady] = useState(false);
   const drawing = useRef(false);
+  const last = useRef<{ x: number; y: number } | null>(null);
   const scratched = useRef(0);
   const revealFired = useRef(false);
 
@@ -43,18 +47,19 @@ export function ScratchReveal({
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return false;
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
 
     const grad = ctx.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, "#0d5c56");
-    grad.addColorStop(0.45, "#0f766e");
-    grad.addColorStop(1, "#115e59");
+    grad.addColorStop(0, "#0f766e");
+    grad.addColorStop(0.5, "#14b8a6");
+    grad.addColorStop(1, "#0d9488");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 1;
-    for (let i = -h; i < w + h; i += 9) {
+    for (let i = -h; i < w + h; i += 10) {
       ctx.beginPath();
       ctx.moveTo(i, 0);
       ctx.lineTo(i + h, h);
@@ -65,10 +70,10 @@ export function ScratchReveal({
     ctx.font = "600 15px Figtree, system-ui, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, w / 2, h / 2 - 8);
+    ctx.fillText(label, w / 2, h / 2 - 10);
     ctx.font = "500 12px Figtree, system-ui, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.72)";
-    ctx.fillText("Drag to scratch", w / 2, h / 2 + 14);
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("Drag your finger", w / 2, h / 2 + 12);
 
     setFoilReady(true);
     return true;
@@ -79,90 +84,115 @@ export function ScratchReveal({
     const container = containerRef.current;
     if (!container) return;
 
-    const run = () => {
-      paintFoil();
-    };
-
+    const run = () => paintFoil();
     run();
     const raf = requestAnimationFrame(run);
-    const t1 = window.setTimeout(run, 40);
-    const t2 = window.setTimeout(run, 160);
+    const t = window.setTimeout(run, 80);
 
     const ro = new ResizeObserver(() => {
-      // Repaint full foil only before the user has started scratching
       if (scratched.current === 0) paintFoil();
     });
     ro.observe(container);
 
     return () => {
       cancelAnimationFrame(raf);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
+      window.clearTimeout(t);
       ro.disconnect();
     };
   }, [paintFoil, revealed]);
 
-  const finishReveal = () => {
-    if (revealFired.current) return;
-    revealFired.current = true;
-    setRevealed(true);
-    sounds.reveal();
-    onReveal?.();
+  const toCanvasXY = (clientX: number, clientY: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return null;
+    return {
+      x: ((clientX - rect.left) / rect.width) * canvas.width,
+      y: ((clientY - rect.top) / rect.height) * canvas.height,
+      brush: Math.max(28, 34 * (canvas.width / rect.width)),
+    };
   };
 
-  const scratchAt = (clientX: number, clientY: number) => {
+  const eraseAt = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas || revealed) return;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return;
-
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const x = (clientX - rect.left) * scaleX;
-    const y = (clientY - rect.top) * scaleY;
-    const radius = 30 * Math.max(scaleX, scaleY);
+    const pt = toCanvasXY(clientX, clientY);
+    if (!ctx || !pt) return;
 
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = "destination-out";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = pt.brush;
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = "#000";
+
+    if (last.current) {
+      ctx.beginPath();
+      ctx.moveTo(last.current.x, last.current.y);
+      ctx.lineTo(pt.x, pt.y);
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.arc(pt.x, pt.y, pt.brush / 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
+    last.current = { x: pt.x, y: pt.y };
     scratched.current += 1;
-    if (scratched.current % 4 === 0) sounds.scratch();
 
-    if (scratched.current > 10) {
+    if (scratched.current > 8 && scratched.current % 4 === 0) {
       const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
       let clear = 0;
       let total = 0;
-      for (let i = 3; i < image.data.length; i += 32) {
+      for (let i = 3; i < image.data.length; i += 48) {
         total++;
-        if (image.data[i] < 120) clear++;
+        if (image.data[i] < 128) clear++;
       }
-      if (total > 0 && clear / total > 0.38) finishReveal();
+      if (total > 0 && clear / total > 0.36) {
+        if (!revealFired.current) {
+          revealFired.current = true;
+          setRevealed(true);
+          onReveal?.();
+        }
+      }
     }
+  };
+
+  const onStart = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drawing.current = true;
+    last.current = null;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    eraseAt(e.clientX, e.clientY);
+  };
+
+  const onMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    eraseAt(e.clientX, e.clientY);
+  };
+
+  const onEnd = () => {
+    drawing.current = false;
+    last.current = null;
   };
 
   return (
     <div
       ref={containerRef}
-      className={cn(
-        "relative isolate overflow-hidden rounded-2xl",
-        className
-      )}
+      className={cn("relative isolate overflow-hidden rounded-2xl", className)}
     >
       <div className="p-4">{children}</div>
 
       {!revealed && (
         <>
-          {/* Covers content until canvas bitmap is painted full-size */}
           {!foilReady && (
             <div
-              className="absolute inset-0 z-30 flex items-center justify-center rounded-[inherit] bg-[#0f766e]"
+              className="absolute inset-0 z-30 flex items-center justify-center bg-teal-700"
               aria-hidden
             >
               <span className="text-sm font-semibold text-white/90">{label}</span>
@@ -170,24 +200,17 @@ export function ScratchReveal({
           )}
           <canvas
             ref={canvasRef}
-            className="absolute inset-0 z-20 m-0 block h-full max-h-none w-full max-w-none touch-none cursor-crosshair rounded-[inherit] p-0"
-            style={{ width: "100%", height: "100%" }}
-            onPointerDown={(e) => {
-              drawing.current = true;
-              e.currentTarget.setPointerCapture(e.pointerId);
-              scratchAt(e.clientX, e.clientY);
-              sounds.tap();
+            className="absolute inset-0 z-20 block h-full w-full touch-none select-none"
+            style={{
+              width: "100%",
+              height: "100%",
+              touchAction: "none",
             }}
-            onPointerMove={(e) => {
-              if (!drawing.current) return;
-              scratchAt(e.clientX, e.clientY);
-            }}
-            onPointerUp={() => {
-              drawing.current = false;
-            }}
-            onPointerCancel={() => {
-              drawing.current = false;
-            }}
+            onPointerDown={onStart}
+            onPointerMove={onMove}
+            onPointerUp={onEnd}
+            onPointerCancel={onEnd}
+            onPointerLeave={onEnd}
           />
         </>
       )}

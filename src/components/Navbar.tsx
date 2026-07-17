@@ -5,12 +5,13 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
-import { sounds } from "@/lib/sounds";
-import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
+import { unlockAudio } from "@/lib/sounds";
 
 export function Navbar() {
   const pathname = usePathname();
   const hydrated = useHydrated();
+  const { theme, toggle, ready } = useTheme();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -24,8 +25,8 @@ export function Navbar() {
   const logoutLocal = useAppStore((s) => s.logoutLocal);
   const lastSavedAt = useAppStore((s) => s.lastSavedAt);
 
-  const displayName = hydrated ? profile.name : "Aspirant";
-  const displayInitial = displayName.slice(0, 1).toUpperCase();
+  const displayName = hydrated && profile.authenticated ? profile.name : "Guest";
+  const displayInitial = (displayName || "G").slice(0, 1).toUpperCase();
   const showDirty = hydrated && dirty;
   const streak = hydrated ? profile.streak : 0;
 
@@ -40,7 +41,6 @@ export function Navbar() {
   const saveProgress = async () => {
     setSaving(true);
     setMessage(null);
-    sounds.tap();
     try {
       const res = await fetch("/api/sync", {
         method: "POST",
@@ -54,84 +54,51 @@ export function Navbar() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Save failed");
       markSaved();
-      setMessage(data.message || "Saved to cloud");
+      setMessage(data.message || "Saved");
     } catch (err) {
-      // Offline / no DB — still clear dirty after local confirm
       markSaved();
-      setMessage(
-        err instanceof Error
-          ? `Saved locally. Cloud: ${err.message}`
-          : "Saved locally"
-      );
+      setMessage(err instanceof Error ? err.message : "Saved locally");
     } finally {
       setSaving(false);
       setOpen(false);
     }
   };
 
-  const handleLogout = async () => {
-    sounds.tap();
-    if (dirty) await saveProgress();
-    logoutLocal();
-    setOpen(false);
-    setMessage("Logged out — local progress cleared");
-  };
+  const hideChrome =
+    pathname === "/" || pathname.startsWith("/auth") || pathname.startsWith("/landing");
 
-  const links = [
-    { href: "/", label: "Home" },
-    { href: "/play", label: "Play" },
-    { href: "/daily", label: "Daily" },
-    { href: "/leaderboard", label: "Ranks" },
-  ];
+  if (hideChrome) return null;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--stroke)] bg-[var(--bg)]/85 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-[var(--stroke)] bg-[var(--nav-bg)] backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
         <Link
-          href="/"
-          className="font-[family-name:var(--font-display)] text-lg tracking-tight text-[var(--teal-deep)]"
-          onClick={() => sounds.tap()}
+          href="/home"
+          className="flex items-center gap-2"
+          onClick={() => unlockAudio()}
         >
-          Word<span className="text-[var(--coral)]">Swipe</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-teal-400 to-sky-500 text-xs font-black text-[#070b14]">
+            WS
+          </span>
+          <span className="font-[family-name:var(--font-display)] text-lg tracking-tight text-[var(--ink)]">
+            Word<span className="text-[var(--teal)]">Swipe</span>
+          </span>
         </Link>
-
-        <nav className="hidden items-center gap-1 sm:flex">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => sounds.tap()}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition",
-                pathname === l.href
-                  ? "bg-[var(--teal)] text-white"
-                  : "text-[var(--muted)] hover:text-[var(--ink)]"
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
 
         <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => {
-              sounds.tap();
+              unlockAudio();
               setOpen((o) => !o);
             }}
-            className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-[var(--card)] py-1 pl-1 pr-3"
-            aria-haspopup="menu"
-            aria-expanded={open}
+            className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-[var(--surface)] py-1 pl-1 pr-3"
           >
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-              style={{ background: hydrated ? profile.avatarColor : "#0F766E" }}
-            >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--teal-soft)] text-xs font-bold text-[var(--teal)]">
               {displayInitial}
             </span>
             <span className="max-w-[72px] truncate text-xs font-semibold text-[var(--ink)]">
-              {displayName}
+              {displayName || "You"}
             </span>
             {showDirty && (
               <span className="h-2 w-2 rounded-full bg-[var(--coral)]" title="Unsaved" />
@@ -139,24 +106,19 @@ export function Navbar() {
           </button>
 
           {open && (
-            <div
-              role="menu"
-              className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--stroke)] bg-[var(--card)] shadow-xl"
-            >
+            <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-[var(--stroke)] bg-[var(--card)] shadow-2xl">
               <div className="border-b border-[var(--stroke)] px-4 py-3">
-                <p className="text-sm font-semibold text-[var(--ink)]">
-                  {displayName}
-                </p>
+                <p className="text-sm font-semibold text-[var(--ink)]">{displayName}</p>
                 <p className="text-[11px] text-[var(--muted)]">
                   🔥 {streak} day streak
+                  {profile.batch ? ` · ${profile.batch}` : ""}
                   {hydrated && lastSavedAt
                     ? ` · saved ${new Date(lastSavedAt).toLocaleTimeString()}`
-                    : " · not synced yet"}
+                    : ""}
                 </p>
               </div>
               <Link
                 href="/profile"
-                role="menuitem"
                 onClick={() => setOpen(false)}
                 className="block px-4 py-3 text-sm text-[var(--ink)] hover:bg-[var(--surface)]"
               >
@@ -164,18 +126,37 @@ export function Navbar() {
               </Link>
               <button
                 type="button"
-                role="menuitem"
-                disabled={saving}
-                onClick={saveProgress}
-                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[var(--teal-deep)] hover:bg-[var(--teal-soft)] disabled:opacity-60"
+                disabled={!ready}
+                onClick={() => {
+                  unlockAudio();
+                  toggle();
+                }}
+                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-[var(--ink)] hover:bg-[var(--surface)] disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save progress"}
-                {showDirty && <span className="text-[10px] text-[var(--coral)]">unsaved</span>}
+                <span>{theme === "dark" ? "Dark mode" : "Light mode"}</span>
+                <span className="text-[11px] font-semibold text-[var(--teal)]">
+                  Switch to {theme === "dark" ? "light" : "dark"}
+                </span>
               </button>
               <button
                 type="button"
-                role="menuitem"
-                onClick={handleLogout}
+                disabled={saving}
+                onClick={saveProgress}
+                className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-[var(--teal)] hover:bg-[var(--teal-soft)] disabled:opacity-60"
+              >
+                {saving ? "Saving…" : "Save progress"}
+                {showDirty && (
+                  <span className="text-[10px] text-[var(--coral)]">unsaved</span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (dirty) await saveProgress();
+                  logoutLocal();
+                  setOpen(false);
+                  window.location.href = "/";
+                }}
                 className="w-full border-t border-[var(--stroke)] px-4 py-3 text-left text-sm text-[var(--coral)] hover:bg-[var(--coral-soft)]"
               >
                 Save & logout
@@ -186,7 +167,7 @@ export function Navbar() {
       </div>
 
       {message && (
-        <div className="border-t border-[var(--stroke)] bg-[var(--teal-soft)] px-4 py-2 text-center text-xs text-[var(--teal-deep)]">
+        <div className="border-t border-[var(--stroke)] bg-[var(--teal-soft)] px-4 py-2 text-center text-xs text-[var(--teal)]">
           {message}
         </div>
       )}

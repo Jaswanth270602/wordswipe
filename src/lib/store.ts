@@ -20,8 +20,11 @@ function todayKey(): string {
 function defaultProfile(): UserProfile {
   return {
     id: "guest-local",
-    name: "Aspirant",
-    avatarColor: "#0F766E",
+    name: "",
+    phone: "",
+    batch: "",
+    authenticated: false,
+    avatarColor: "#2dd4bf",
     streak: 0,
     lastPlayedAt: null,
     unlockedLevels: [1],
@@ -43,6 +46,7 @@ interface Store extends AppState {
   startSession: () => void;
   resetSession: () => void;
   updateName: (name: string) => void;
+  signIn: (data: { name: string; phone: string; batch: string }) => void;
   markSaved: () => void;
   logoutLocal: () => void;
   getUnlockedLevels: () => number[];
@@ -67,7 +71,6 @@ export const useAppStore = create<Store>()(
       rateWord: (wordId, rating, queuePos) => {
         const state = get();
         const updated = applyRating(state.progress[wordId], wordId, rating, queuePos);
-        // strip internal field
         const { _reinsertAfter, ...clean } = updated as WordProgressLocal & {
           _reinsertAfter?: number;
         };
@@ -147,6 +150,19 @@ export const useAppStore = create<Store>()(
           dirty: true,
         })),
 
+      signIn: ({ name, phone, batch }) =>
+        set((s) => ({
+          profile: {
+            ...s.profile,
+            id: `u_${phone.replace(/\D/g, "").slice(-10) || "guest"}`,
+            name: name.trim(),
+            phone: phone.trim(),
+            batch,
+            authenticated: true,
+          },
+          dirty: true,
+        })),
+
       markSaved: () =>
         set({ dirty: false, lastSavedAt: new Date().toISOString() }),
 
@@ -170,7 +186,7 @@ export const useAppStore = create<Store>()(
       getStreak: () => get().profile.streak,
     }),
     {
-      name: "wordswipe-v1",
+      name: "wordswipe-v2",
       skipHydration: true,
       partialize: (s) => ({
         profile: s.profile,

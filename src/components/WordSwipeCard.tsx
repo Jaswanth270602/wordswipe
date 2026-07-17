@@ -9,10 +9,9 @@ import {
   type PanInfo,
 } from "framer-motion";
 import type { Rating, WordCard, WordProgressLocal } from "@/lib/types";
-import { CATEGORY_LABELS, RATING_META } from "@/lib/types";
+import { CATEGORY_LABELS } from "@/lib/types";
 import { ScratchReveal } from "./ScratchReveal";
-import { sounds } from "@/lib/sounds";
-import { cn } from "@/lib/utils";
+import { sounds, unlockAudio } from "@/lib/sounds";
 
 interface WordSwipeCardProps {
   word: WordCard;
@@ -21,7 +20,7 @@ interface WordSwipeCardProps {
   index: number;
 }
 
-const EXIT_X = 480;
+const EXIT_X = 520;
 
 export function WordSwipeCard({
   word,
@@ -32,123 +31,133 @@ export function WordSwipeCard({
   const [revealed, setRevealed] = useState(false);
   const exiting = useRef(false);
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 220], [-14, 14]);
-  const glowRight = useTransform(x, [20, 140], [0, 1]);
-  const glowLeft = useTransform(x, [-140, -20], [1, 0]);
+  const rotate = useTransform(x, [-240, 240], [-16, 16]);
+  const knowOpacity = useTransform(x, [40, 140], [0, 1]);
+  const learnOpacity = useTransform(x, [-140, -40], [1, 0]);
+  const glowRight = useTransform(x, [20, 160], [0, 1]);
+  const glowLeft = useTransform(x, [-160, -20], [1, 0]);
 
   const flyOut = (dir: 1 | -1, rating: Rating) => {
     if (exiting.current || index !== 0) return;
     exiting.current = true;
-    sounds.rate(rating);
     animate(x, dir * EXIT_X, {
       type: "spring",
-      stiffness: 320,
+      stiffness: 340,
       damping: 28,
-      velocity: dir * 800,
-    }).then(() => {
-      onRate(rating);
-    });
+      velocity: dir * 900,
+    }).then(() => onRate(rating));
   };
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     if (!revealed || exiting.current) {
-      animate(x, 0, { type: "spring", stiffness: 500, damping: 32 });
+      animate(x, 0, { type: "spring", stiffness: 520, damping: 34 });
       return;
     }
     const dx = info.offset.x;
     const vx = info.velocity.x;
-    if (dx > 100 || vx > 650) flyOut(1, "EASY");
-    else if (dx < -100 || vx < -650) flyOut(-1, "HARD");
-    else animate(x, 0, { type: "spring", stiffness: 500, damping: 32 });
+    if (dx > 90 || vx > 600) flyOut(1, "EASY");
+    else if (dx < -90 || vx < -600) flyOut(-1, "HARD");
+    else animate(x, 0, { type: "spring", stiffness: 520, damping: 34 });
   };
 
-  const stackScale = 1 - index * 0.04;
+  const stackScale = 1 - index * 0.045;
 
   return (
     <motion.div
       className="absolute inset-0"
-      style={{
-        x,
-        rotate,
-        zIndex: 20 - index,
-      }}
+      style={{ x, rotate, zIndex: 20 - index }}
       drag={revealed && index === 0 ? "x" : false}
-      dragListener={revealed && index === 0}
-      dragElastic={0.16}
+      dragElastic={0.14}
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
-      initial={{ scale: stackScale * 0.96, opacity: 0, y: 20 + index * 12 }}
-      animate={{ scale: stackScale, opacity: 1, y: index * 12 }}
+      initial={{ scale: stackScale * 0.96, opacity: 0, y: 24 + index * 14 }}
+      animate={{ scale: stackScale, opacity: 1, y: index * 14 }}
       exit={{ opacity: 0, transition: { duration: 0.12 } }}
-      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+      transition={{ type: "spring", stiffness: 400, damping: 34 }}
     >
       <motion.div
         style={{ opacity: glowRight }}
-        className="pointer-events-none absolute -inset-1 rounded-[32px] bg-gradient-to-r from-transparent to-emerald-400/30"
+        className="pointer-events-none absolute -inset-2 rounded-[32px] bg-gradient-to-r from-transparent via-teal-400/10 to-teal-400/40 blur-[2px]"
       />
       <motion.div
         style={{ opacity: glowLeft }}
-        className="pointer-events-none absolute -inset-1 rounded-[32px] bg-gradient-to-l from-transparent to-rose-400/30"
+        className="pointer-events-none absolute -inset-2 rounded-[32px] bg-gradient-to-l from-transparent via-rose-400/10 to-rose-400/40 blur-[2px]"
       />
 
-      <article className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-white/70 bg-[var(--card)] p-5 shadow-[0_28px_60px_-28px_rgba(15,61,46,0.55)]">
-        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[var(--teal)] via-teal-300 to-[var(--coral)] opacity-80" />
+      <article className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[var(--card)] p-5 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]">
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-teal-400 via-sky-400 to-rose-400" />
+
+        {/* Swipe stamps */}
+        <motion.div
+          style={{ opacity: knowOpacity }}
+          className="pointer-events-none absolute left-5 top-16 z-30 -rotate-12 rounded-xl border-2 border-teal-400 px-3 py-1.5 text-sm font-black tracking-widest text-teal-300"
+        >
+          GOT IT
+        </motion.div>
+        <motion.div
+          style={{ opacity: learnOpacity }}
+          className="pointer-events-none absolute right-5 top-16 z-30 rotate-12 rounded-xl border-2 border-rose-400 px-3 py-1.5 text-sm font-black tracking-widest text-rose-300"
+        >
+          LEARN
+        </motion.div>
 
         <div className="mb-4 flex items-start justify-between gap-3 pt-1">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
               {CATEGORY_LABELS[word.category]} · L{word.level}
             </p>
-            <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.9rem] leading-[1.1] tracking-tight text-[var(--ink)]">
+            <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.85rem] leading-[1.1] tracking-tight text-white">
               {word.word}
             </h2>
           </div>
           <button
             type="button"
-            aria-label="Pronounce"
-            onClick={() => {
-              sounds.tap();
+            aria-label="Pronounce word"
+            onPointerDown={() => unlockAudio()}
+            onClick={(e) => {
+              e.stopPropagation();
+              unlockAudio();
               sounds.speak(word.word);
             }}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--teal-soft)] text-lg text-[var(--teal)] transition active:scale-95"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-teal-400/30 bg-teal-400/10 text-lg text-teal-300 transition active:scale-95"
           >
-            🔊
+            <SpeakerIcon />
           </button>
         </div>
 
         <div className="mb-4">
           <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
             <span>Memory</span>
-            <span className="text-[var(--ink)]">{progress.strength}%</span>
+            <span className="text-white">{progress.strength}%</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--track)]">
             <div
-              className="h-full rounded-full bg-[var(--teal)] transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-teal-500 to-teal-300 transition-all duration-300"
               style={{ width: `${progress.strength}%` }}
             />
           </div>
         </div>
 
-        <div className="relative mb-4 min-h-[200px] flex-1">
+        <div className="relative mb-3 min-h-[200px] flex-1">
           <ScratchReveal
             label="Scratch to reveal"
             onReveal={() => setRevealed(true)}
-            className="min-h-[200px]"
+            className="min-h-[200px] border border-white/5"
           >
             <div className="space-y-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                   Meaning
                 </p>
-                <p className="mt-1 text-[15px] leading-relaxed text-[var(--ink)]">
+                <p className="mt-1 text-[15px] leading-relaxed text-slate-100">
                   {word.meaning}
                 </p>
               </div>
-              <div className="rounded-2xl bg-[var(--surface)] px-3 py-2.5">
+              <div className="rounded-2xl bg-white/5 px-3 py-2.5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                   Example
                 </p>
-                <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink)]">
+                <p className="mt-1 text-[14px] leading-relaxed text-slate-200">
                   {word.example}
                 </p>
               </div>
@@ -157,7 +166,7 @@ export function WordSwipeCard({
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                     Synonyms
                   </p>
-                  <p className="mt-1 text-sm capitalize text-[var(--teal-deep)]">
+                  <p className="mt-1 text-sm capitalize text-teal-300">
                     {word.synonyms.join(" · ")}
                   </p>
                 </div>
@@ -167,7 +176,7 @@ export function WordSwipeCard({
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                     Antonyms
                   </p>
-                  <p className="mt-1 text-sm capitalize text-[var(--coral)]">
+                  <p className="mt-1 text-sm capitalize text-rose-300">
                     {word.antonyms.join(" · ")}
                   </p>
                 </div>
@@ -176,45 +185,47 @@ export function WordSwipeCard({
           </ScratchReveal>
         </div>
 
-        <p className="mb-3 text-center text-[11px] text-[var(--muted)]">
-          {revealed
-            ? "Swipe or tap a rating"
-            : "Scratch first — then swipe"}
-        </p>
-
-        <div className="grid grid-cols-4 gap-2">
-          {(Object.keys(RATING_META) as Rating[]).map((r) => {
-            const meta = RATING_META[r];
-            return (
-              <button
-                key={r}
-                type="button"
-                disabled={!revealed}
-                onClick={() => {
-                  const dir = r === "EASY" || r === "SOMEWHAT" ? 1 : -1;
-                  flyOut(dir as 1 | -1, r);
-                }}
-                className={cn(
-                  "flex flex-col items-center rounded-2xl border border-[var(--stroke)] bg-[var(--surface)] px-1 py-2.5 transition active:scale-95 disabled:opacity-35"
-                )}
-                style={{
-                  boxShadow: revealed
-                    ? `inset 0 -2px 0 ${meta.color}`
-                    : undefined,
-                }}
-              >
-                <span className="text-sm">{meta.emoji}</span>
-                <span
-                  className="mt-0.5 text-[10px] font-bold uppercase tracking-wide"
-                  style={{ color: meta.color }}
-                >
-                  {meta.label}
-                </span>
-              </button>
-            );
-          })}
+        <div className="mt-auto flex items-center justify-center gap-6 pt-2">
+          <div className="flex flex-col items-center gap-1 opacity-70">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-rose-400/40 text-rose-300">
+              ←
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-300/80">
+              Learn
+            </span>
+          </div>
+          <p className="max-w-[9rem] text-center text-[11px] text-[var(--muted)]">
+            {revealed ? "Swipe the card" : "Scratch first"}
+          </p>
+          <div className="flex flex-col items-center gap-1 opacity-70">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-teal-400/40 text-teal-300">
+              →
+            </span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80">
+              Got it
+            </span>
+          </div>
         </div>
       </article>
     </motion.div>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M11 5L6 9H3v6h3l5 4V5z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M15.5 8.5a5 5 0 010 7M18.5 6a9 9 0 010 12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

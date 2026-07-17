@@ -66,6 +66,9 @@ export interface SessionReport {
 export interface UserProfile {
   id: string;
   name: string;
+  phone: string;
+  batch: string;
+  authenticated: boolean;
   avatarColor: string;
   streak: number;
   lastPlayedAt: string | null;
@@ -176,3 +179,13 @@ export const RATING_META: Record<
     emoji: "🔴",
   },
 };
+
+export const BATCH_OPTIONS = ["June 2026", "July 2026"] as const;
+
+export const NAV_ITEMS = [
+  { href: "/home", label: "Home", icon: "home" },
+  { href: "/play", label: "Study", icon: "study" },
+  { href: "/daily", label: "Daily", icon: "daily" },
+  { href: "/leaderboard", label: "Ranks", icon: "ranks" },
+  { href: "/profile", label: "Profile", icon: "profile" },
+] as const;

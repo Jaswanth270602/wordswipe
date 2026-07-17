@@ -1,68 +1,72 @@
 "use client";
 
-let ctx: AudioContext | null = null;
+/** Production-safe audio + pronunciation helpers */
 
-function getCtx(): AudioContext | null {
-  if (typeof window === "undefined") return null;
-  if (!ctx) {
-    const AC =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    ctx = new AC();
+let unlocked = false;
+
+export function unlockAudio() {
+  if (typeof window === "undefined") return;
+  unlocked = true;
+  try {
+    if (window.speechSynthesis) {
+      // iOS / Chrome need a gesture-bound unlock
+      window.speechSynthesis.cancel();
+      const warm = new SpeechSynthesisUtterance("");
+      warm.volume = 0;
+      window.speechSynthesis.speak(warm);
+    }
+  } catch {
+    /* ignore */
   }
-  return ctx;
-}
-
-function tone(
-  freq: number,
-  duration: number,
-  type: OscillatorType = "sine",
-  gain = 0.08
-) {
-  const audio = getCtx();
-  if (!audio) return;
-  const osc = audio.createOscillator();
-  const g = audio.createGain();
-  osc.type = type;
-  osc.frequency.value = freq;
-  g.gain.value = gain;
-  osc.connect(g);
-  g.connect(audio.destination);
-  const now = audio.currentTime;
-  g.gain.setValueAtTime(gain, now);
-  g.gain.exponentialRampToValueAtTime(0.001, now + duration);
-  osc.start(now);
-  osc.stop(now + duration);
 }
 
 export const sounds = {
-  tap: () => tone(520, 0.06, "triangle", 0.06),
-  scratch: () => tone(180, 0.12, "sawtooth", 0.04),
-  reveal: () => {
-    tone(440, 0.08, "sine", 0.07);
-    setTimeout(() => tone(660, 0.1, "sine", 0.06), 70);
+  tap: () => {
+    /* silent UI — no click noise */
   },
-  rate: (kind: "EASY" | "SOMEWHAT" | "HARD" | "NEW") => {
-    if (kind === "EASY") {
-      tone(523, 0.08);
-      setTimeout(() => tone(659, 0.1), 60);
-      setTimeout(() => tone(784, 0.12), 120);
-    } else if (kind === "SOMEWHAT") {
-      tone(440, 0.1);
-      setTimeout(() => tone(554, 0.1), 80);
-    } else if (kind === "HARD") {
-      tone(330, 0.12, "triangle");
-    } else {
-      tone(220, 0.15, "square", 0.05);
-    }
+  scratch: () => {
+    /* silent scratch by design */
+  },
+  reveal: () => {
+    /* silent reveal */
+  },
+  rate: (_kind: "EASY" | "SOMEWHAT" | "HARD" | "NEW") => {
+    /* silent swipe */
   },
   speak: (text: string) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.9;
-    u.lang = "en-IN";
-    window.speechSynthesis.speak(u);
+    if (typeof window === "undefined") return;
+    if (!window.speechSynthesis) {
+      console.warn("Speech synthesis unavailable");
+      return;
+    }
+    unlockAudio();
+    const speakNow = () => {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.88;
+      u.pitch = 1;
+      u.volume = 1;
+      // Prefer Indian English, then any en
+      const voices = window.speechSynthesis.getVoices();
+      const preferred =
+        voices.find((v) => /en-IN/i.test(v.lang)) ||
+        voices.find((v) => /^en/i.test(v.lang) && /female|natural|google/i.test(v.name)) ||
+        voices.find((v) => /^en/i.test(v.lang));
+      if (preferred) u.voice = preferred;
+      u.lang = preferred?.lang || "en-IN";
+      window.speechSynthesis.speak(u);
+    };
+    // Voices often load async in production
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        speakNow();
+        window.speechSynthesis.onvoiceschanged = null;
+      };
+      // Fallback if event never fires
+      setTimeout(speakNow, 150);
+    } else {
+      speakNow();
+    }
   },
 };

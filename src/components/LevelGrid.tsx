@@ -6,7 +6,7 @@ import { LEVELS } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
 import { useHydrated } from "@/lib/use-hydrated";
 import { getKnownWordCount } from "@/data/words";
-import { sounds } from "@/lib/sounds";
+import { unlockAudio } from "@/lib/sounds";
 
 export function LevelGrid() {
   const hydrated = useHydrated();
@@ -20,28 +20,26 @@ export function LevelGrid() {
         return (
           <motion.div
             key={level.id}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.06 }}
+            transition={{ delay: i * 0.05 }}
           >
             {unlocked ? (
               <Link
                 href={`/play/${level.id}`}
-                onClick={() => sounds.tap()}
-                className="block rounded-3xl border border-[var(--stroke)] bg-[var(--card)] p-4 transition active:scale-[0.99]"
-                style={{
-                  boxShadow: `inset 4px 0 0 ${level.color}`,
-                }}
+                onClick={() => unlockAudio()}
+                className="block rounded-3xl border border-white/10 bg-[#111827] p-4 transition active:scale-[0.99]"
+                style={{ boxShadow: `inset 3px 0 0 ${level.color}` }}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
                       Level {level.id}
                     </p>
-                    <h3 className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
+                    <h3 className="font-[family-name:var(--font-display)] text-lg text-white">
                       {level.title}
                     </h3>
-                    <p className="mt-0.5 text-sm text-[var(--muted)]">
+                    <p className="mt-0.5 text-sm text-slate-400">
                       {level.subtitle}
                     </p>
                   </div>
@@ -54,21 +52,16 @@ export function LevelGrid() {
                 </div>
               </Link>
             ) : (
-              <div className="rounded-3xl border border-dashed border-[var(--stroke)] bg-[var(--surface)]/60 p-4 opacity-70">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
-                      Level {level.id} · Locked
-                    </p>
-                    <h3 className="font-[family-name:var(--font-display)] text-xl text-[var(--ink)]">
-                      {level.title}
-                    </h3>
-                    <p className="mt-0.5 text-sm text-[var(--muted)]">
-                      Know {level.unlockAt} words to unlock · you have {known}
-                    </p>
-                  </div>
-                  <span className="text-lg">🔒</span>
-                </div>
+              <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-4 opacity-60">
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                  Level {level.id} · Locked
+                </p>
+                <h3 className="font-[family-name:var(--font-display)] text-lg text-slate-300">
+                  {level.title}
+                </h3>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  Know {level.unlockAt} · you have {known}
+                </p>
               </div>
             )}
           </motion.div>
