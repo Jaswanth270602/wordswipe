@@ -22,20 +22,21 @@ model User {
 }
 
 model Word {
-  id           String         @id @default(cuid())
-  word         String
-  meaning      String
-  example      String
-  synonyms     String[]
-  antonyms     String[]
+  id            String         @id @default(cuid())
+  word          String
+  meaning       String
+  example       String
+  synonyms      String[]
+  antonyms      String[]
+  origin        String?
   blankSentence String?
-  blankAnswer  String?
-  category     Category
-  level        Int
-  difficulty   Difficulty     @default(EASY)
-  cardTypes    CardType[]
-  createdAt    DateTime       @default(now())
-  progress     WordProgress[]
+  blankAnswer   String?
+  category      Category
+  level         Int
+  difficulty    Difficulty     @default(EASY)
+  cardTypes     CardType[]
+  createdAt     DateTime       @default(now())
+  progress      WordProgress[]
 
   @@unique([word, category])
   @@index([level, category])
@@ -97,6 +98,7 @@ enum Category {
   EDITORIAL
   PREVIOUS_YEAR
   HIGH_FREQUENCY
+  SPELLINGS
 }
 
 enum Difficulty {

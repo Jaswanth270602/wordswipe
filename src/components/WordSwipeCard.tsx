@@ -61,6 +61,9 @@ export function WordSwipeCard({
   };
 
   const stackScale = 1 - index * 0.045;
+  const showOrigin =
+    !!word.origin &&
+    (word.category === "IDIOMS" || word.category === "PHRASAL_VERBS");
 
   return (
     <motion.div
@@ -77,36 +80,35 @@ export function WordSwipeCard({
     >
       <motion.div
         style={{ opacity: glowRight }}
-        className="pointer-events-none absolute -inset-2 rounded-[32px] bg-gradient-to-r from-transparent via-teal-400/10 to-teal-400/40 blur-[2px]"
+        className="pointer-events-none absolute -inset-2 rounded-[32px] bg-gradient-to-r from-transparent via-[var(--teal)]/15 to-[var(--teal)]/35 blur-[2px]"
       />
       <motion.div
         style={{ opacity: glowLeft }}
-        className="pointer-events-none absolute -inset-2 rounded-[32px] bg-gradient-to-l from-transparent via-rose-400/10 to-rose-400/40 blur-[2px]"
+        className="pointer-events-none absolute -inset-2 rounded-[32px] bg-gradient-to-l from-transparent via-[var(--coral)]/15 to-[var(--coral)]/35 blur-[2px]"
       />
 
-      <article className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[var(--card)] p-5 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)]">
-        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-teal-400 via-sky-400 to-rose-400" />
+      <article className="relative flex h-full flex-col overflow-hidden rounded-[28px] border border-[var(--stroke)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)]">
+        <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--teal)] via-sky-400 to-[var(--coral)]" />
 
-        {/* Swipe stamps */}
         <motion.div
           style={{ opacity: knowOpacity }}
-          className="pointer-events-none absolute left-5 top-16 z-30 -rotate-12 rounded-xl border-2 border-teal-400 px-3 py-1.5 text-sm font-black tracking-widest text-teal-300"
+          className="pointer-events-none absolute left-5 top-16 z-30 -rotate-12 rounded-xl border-2 border-[var(--teal)] px-3 py-1.5 text-sm font-black tracking-widest text-[var(--teal)]"
         >
           GOT IT
         </motion.div>
         <motion.div
           style={{ opacity: learnOpacity }}
-          className="pointer-events-none absolute right-5 top-16 z-30 rotate-12 rounded-xl border-2 border-rose-400 px-3 py-1.5 text-sm font-black tracking-widest text-rose-300"
+          className="pointer-events-none absolute right-5 top-16 z-30 rotate-12 rounded-xl border-2 border-[var(--coral)] px-3 py-1.5 text-sm font-black tracking-widest text-[var(--coral)]"
         >
           LEARN
         </motion.div>
 
-        <div className="mb-4 flex items-start justify-between gap-3 pt-1">
+        <div className="mb-3 flex items-start justify-between gap-3 pt-1">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)]">
               {CATEGORY_LABELS[word.category]} · L{word.level}
             </p>
-            <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.85rem] leading-[1.1] tracking-tight text-white">
+            <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[1.75rem] leading-[1.1] tracking-tight text-[var(--ink)]">
               {word.word}
             </h2>
           </div>
@@ -119,54 +121,64 @@ export function WordSwipeCard({
               unlockAudio();
               sounds.speak(word.word);
             }}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-teal-400/30 bg-teal-400/10 text-lg text-teal-300 transition active:scale-95"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[var(--stroke)] bg-[var(--teal-soft)] text-[var(--teal)] transition active:scale-95"
           >
             <SpeakerIcon />
           </button>
         </div>
 
-        <div className="mb-4">
+        <div className="mb-3">
           <div className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-[var(--muted)]">
             <span>Memory</span>
-            <span className="text-white">{progress.strength}%</span>
+            <span className="text-[var(--ink)]">{progress.strength}%</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[var(--track)]">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-teal-500 to-teal-300 transition-all duration-300"
+              className="h-full rounded-full bg-gradient-to-r from-[var(--teal-deep)] to-[var(--teal)] transition-all duration-300"
               style={{ width: `${progress.strength}%` }}
             />
           </div>
         </div>
 
-        <div className="relative mb-3 min-h-[200px] flex-1">
+        <div className="relative mb-3 min-h-[210px] flex-1 overflow-hidden">
           <ScratchReveal
             label="Scratch to reveal"
             onReveal={() => setRevealed(true)}
-            className="min-h-[200px] border border-white/5"
+            className="max-h-full min-h-[210px] overflow-y-auto border border-[var(--stroke)]"
           >
             <div className="space-y-3">
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
-                  Meaning
+                  {word.category === "SPELLINGS" ? "Correct form" : "Meaning"}
                 </p>
-                <p className="mt-1 text-[15px] leading-relaxed text-slate-100">
+                <p className="mt-1 text-[15px] leading-relaxed text-[var(--ink)]">
                   {word.meaning}
                 </p>
               </div>
-              <div className="rounded-2xl bg-white/5 px-3 py-2.5">
+              <div className="rounded-2xl bg-[var(--surface)] px-3 py-2.5">
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                   Example
                 </p>
-                <p className="mt-1 text-[14px] leading-relaxed text-slate-200">
+                <p className="mt-1 text-[14px] leading-relaxed text-[var(--ink)]">
                   {word.example}
                 </p>
               </div>
+              {showOrigin && (
+                <div className="rounded-2xl border border-[var(--amber)]/25 bg-[var(--amber-soft)] px-3 py-2.5">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--amber-deep)]">
+                    Origin · remember this
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink)]">
+                    {word.origin}
+                  </p>
+                </div>
+              )}
               {word.synonyms.length > 0 && (
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                     Synonyms
                   </p>
-                  <p className="mt-1 text-sm capitalize text-teal-300">
+                  <p className="mt-1 text-sm capitalize text-[var(--teal)]">
                     {word.synonyms.join(" · ")}
                   </p>
                 </div>
@@ -176,7 +188,7 @@ export function WordSwipeCard({
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--muted)]">
                     Antonyms
                   </p>
-                  <p className="mt-1 text-sm capitalize text-rose-300">
+                  <p className="mt-1 text-sm capitalize text-[var(--coral)]">
                     {word.antonyms.join(" · ")}
                   </p>
                 </div>
@@ -185,23 +197,23 @@ export function WordSwipeCard({
           </ScratchReveal>
         </div>
 
-        <div className="mt-auto flex items-center justify-center gap-6 pt-2">
-          <div className="flex flex-col items-center gap-1 opacity-70">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-rose-400/40 text-rose-300">
+        <div className="mt-auto flex items-center justify-center gap-6 pt-1">
+          <div className="flex flex-col items-center gap-1 opacity-80">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--coral)]/40 text-[var(--coral)]">
               ←
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-300/80">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--coral)]">
               Learn
             </span>
           </div>
           <p className="max-w-[9rem] text-center text-[11px] text-[var(--muted)]">
             {revealed ? "Swipe the card" : "Scratch first"}
           </p>
-          <div className="flex flex-col items-center gap-1 opacity-70">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-teal-400/40 text-teal-300">
+          <div className="flex flex-col items-center gap-1 opacity-80">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--teal)]/40 text-[var(--teal)]">
               →
             </span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-teal-300/80">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--teal)]">
               Got it
             </span>
           </div>

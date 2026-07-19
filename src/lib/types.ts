@@ -8,7 +8,8 @@ export type Category =
   | "ERROR_SPOTTING"
   | "EDITORIAL"
   | "PREVIOUS_YEAR"
-  | "HIGH_FREQUENCY";
+  | "HIGH_FREQUENCY"
+  | "SPELLINGS";
 
 export type Difficulty = "EASY" | "MEDIUM" | "HARD";
 
@@ -28,6 +29,8 @@ export interface WordCard {
   example: string;
   synonyms: string[];
   antonyms: string[];
+  /** Story of where/why the phrase came from — especially idioms & phrasal verbs */
+  origin?: string;
   blankSentence?: string;
   blankAnswer?: string;
   category: Category;
@@ -148,6 +151,7 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   EDITORIAL: "Editorial Vocabulary",
   PREVIOUS_YEAR: "Previous Year",
   HIGH_FREQUENCY: "High Frequency",
+  SPELLINGS: "Spellings",
 };
 
 export const RATING_META: Record<

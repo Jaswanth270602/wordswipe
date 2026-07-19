@@ -13,7 +13,7 @@ import { STUDY_SECTIONS } from "@/lib/sections";
 import { unlockAudio } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 
-/** Circular spin navbar — drag to rotate, tap center hub to open */
+/** Circular spin navbar — live sections glow; others open Coming Soon */
 export function CircularSectionSpin({ className }: { className?: string }) {
   const router = useRouter();
   const [index, setIndex] = useState(0);
@@ -66,9 +66,14 @@ export function CircularSectionSpin({ className }: { className?: string }) {
 
   return (
     <div className={cn("relative mx-auto w-full max-w-sm", className)}>
-      <p className="mb-3 text-center text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--teal)]">
-        Spin · pick a section
-      </p>
+      <div className="mb-3 flex items-center justify-between px-1">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--teal)]">
+          Spin · pick a section
+        </p>
+        <p className="text-[10px] font-semibold text-[var(--muted)]">
+          5 live · rest soon
+        </p>
+      </div>
 
       <div className="relative mx-auto aspect-square w-[280px] select-none">
         <div className="absolute inset-3 rounded-full border border-[var(--stroke)] bg-[var(--card)] shadow-[var(--shadow-card)]" />
@@ -101,10 +106,18 @@ export function CircularSectionSpin({ className }: { className?: string }) {
                   x: "-50%",
                   y: "-50%",
                   rotate: counter,
-                  background: isActive ? node.color : "var(--surface)",
-                  color: isActive ? "#070b14" : "var(--ink)",
+                  background: isActive
+                    ? node.live
+                      ? node.color
+                      : "var(--surface)"
+                    : "var(--surface)",
+                  color: isActive && node.live ? "#070b14" : "var(--ink)",
                   borderColor: isActive ? node.color : "var(--stroke)",
-                  boxShadow: isActive ? `0 0 22px ${node.color}55` : undefined,
+                  opacity: node.live ? 1 : 0.55,
+                  boxShadow:
+                    isActive && node.live
+                      ? `0 0 22px ${node.color}55`
+                      : undefined,
                   zIndex: isActive ? 5 : 1,
                 }}
               >
@@ -121,13 +134,15 @@ export function CircularSectionSpin({ className }: { className?: string }) {
             router.push(active.href);
           }}
           className="absolute left-1/2 top-1/2 z-10 flex h-[100px] w-[100px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-[var(--stroke)] bg-[var(--bg-elevated)] px-3 text-center transition active:scale-95"
-          style={{ boxShadow: `inset 0 0 0 2px ${active.color}66` }}
+          style={{
+            boxShadow: `inset 0 0 0 2px ${active.color}66`,
+          }}
         >
           <span
             className="text-[10px] font-bold uppercase tracking-wider"
             style={{ color: active.color }}
           >
-            Open
+            {active.live ? "Open" : "Soon"}
           </span>
           <span className="mt-0.5 font-[family-name:var(--font-display)] text-sm leading-tight text-[var(--ink)]">
             {active.label}
@@ -147,8 +162,9 @@ export function CircularSectionSpin({ className }: { className?: string }) {
         >
           ‹
         </button>
-        <p className="min-w-[7rem] text-center text-xs text-[var(--muted)]">
-          {index + 1} / {n} · {active.short}
+        <p className="min-w-[8rem] text-center text-xs text-[var(--muted)]">
+          {index + 1} / {n}
+          {active.live ? "" : " · soon"}
         </p>
         <button
           type="button"

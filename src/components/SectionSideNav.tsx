@@ -26,6 +26,9 @@ export function SectionSideNav() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  const live = STUDY_SECTIONS.filter((s) => s.live);
+  const soon = STUDY_SECTIONS.filter((s) => !s.live);
+
   return (
     <>
       <button
@@ -65,7 +68,7 @@ export function SectionSideNav() {
                     Sections
                   </h2>
                   <p className="text-xs text-[var(--muted)]">
-                    Idioms · Syn · Ant · Phrasal…
+                    Syn · Ant · PV · Idioms · Spellings
                   </p>
                 </div>
                 <button
@@ -77,44 +80,84 @@ export function SectionSideNav() {
                 </button>
               </div>
 
-              <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-                {STUDY_SECTIONS.map((s) => {
-                  const active = pathname === s.href;
-                  return (
-                    <Link
-                      key={s.key}
-                      href={s.href}
-                      onClick={() => unlockAudio()}
-                      className={cn(
-                        "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
-                        active
-                          ? "bg-[var(--teal-soft)] text-[var(--teal)]"
-                          : "text-[var(--ink)] hover:bg-[var(--surface)]"
-                      )}
-                    >
-                      <span
-                        className="flex h-10 w-10 items-center justify-center rounded-xl text-[11px] font-black text-[#070b14]"
-                        style={{ background: s.color }}
-                      >
-                        {s.short}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold">
-                          {s.label}
-                        </span>
-                        <span className="block text-[11px] text-[var(--muted)]">
-                          {s.hint}
-                        </span>
-                      </span>
-                    </Link>
-                  );
-                })}
+              <nav className="flex-1 space-y-4 overflow-y-auto p-3">
+                <div>
+                  <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--teal)]">
+                    Live now
+                  </p>
+                  <div className="space-y-1">
+                    {live.map((s) => (
+                      <SectionLink
+                        key={s.key}
+                        s={s}
+                        active={pathname === s.href}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+                    Coming soon
+                  </p>
+                  <div className="space-y-1">
+                    {soon.map((s) => (
+                      <SectionLink
+                        key={s.key}
+                        s={s}
+                        active={pathname === s.href}
+                        dim
+                      />
+                    ))}
+                  </div>
+                </div>
               </nav>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function SectionLink({
+  s,
+  active,
+  dim,
+}: {
+  s: (typeof STUDY_SECTIONS)[number];
+  active: boolean;
+  dim?: boolean;
+}) {
+  return (
+    <Link
+      href={s.href}
+      onClick={() => unlockAudio()}
+      className={cn(
+        "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
+        active
+          ? "bg-[var(--teal-soft)] text-[var(--teal)]"
+          : "text-[var(--ink)] hover:bg-[var(--surface)]",
+        dim && "opacity-70"
+      )}
+    >
+      <span
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-[11px] font-black text-[#070b14]"
+        style={{ background: s.live ? s.color : "#94a3b8" }}
+      >
+        {s.short}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          {s.label}
+          {!s.live && (
+            <span className="rounded-full bg-[var(--surface)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--muted)]">
+              Soon
+            </span>
+          )}
+        </span>
+        <span className="block text-[11px] text-[var(--muted)]">{s.hint}</span>
+      </span>
+    </Link>
   );
 }
 

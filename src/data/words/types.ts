@@ -8,6 +8,8 @@ export type WordEntry = {
   example: string;
   synonyms?: string[];
   antonyms?: string[];
+  /** Origin / etymology story — required for idioms & phrasal verbs */
+  origin?: string;
   category: Category;
   level: number;
   difficulty?: Difficulty;
@@ -21,10 +23,10 @@ export function toWordCard(entry: WordEntry): WordCard {
     example: entry.example,
     synonyms: entry.synonyms ?? [],
     antonyms: entry.antonyms ?? [],
+    origin: entry.origin,
     category: entry.category,
     level: entry.level,
     difficulty: entry.difficulty ?? "EASY",
-    // Unified reveal format — no mixed blank/example card modes
     cardTypes: ["MEANING"],
   };
 }
